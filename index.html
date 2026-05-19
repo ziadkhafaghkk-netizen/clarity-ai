@@ -41,13 +41,8 @@
   </div>
   <div class="tagline">حول ملفاتك لذكاء. افهم، ذاكر، ونجح.</div>
 
-  <div id="loginBox" class="box">
-    <h3>سجل دخول عشان تبدأ</h3>
-    <button id="loginBtn">تسجيل بالجيميل</button>
-  </div>
-
-  <div id="appBox" class="hidden">
-    <p>أهلاً <span id="userName"></span> | <button onclick="logout()" style="width:auto;padding:6px 12px;font-size:13px;">خروج</button></p>
+  <div id="appBox">
+    <p>مرحباً بيك في Clarity AI</p>
 
     <div class="box">
       <h3>1. ارفع ملف PDF أو TXT</h3>
@@ -82,7 +77,6 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -96,40 +90,12 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
 
-let currentUser = null;
 let docId = null;
 let lastAnswer = '';
 let lastQuestion = '';
-
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    currentUser = user;
-    document.getElementById('loginBox').classList.add('hidden');
-    document.getElementById('appBox').classList.remove('hidden');
-    document.getElementById('userName').textContent = user.displayName;
-  } else {
-    document.getElementById('loginBox').classList.remove('hidden');
-    document.getElementById('appBox').classList.add('hidden');
-  }
-});
-
-document.getElementById('loginBtn').onclick = async () => {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (error) {
-    alert('خطأ في تسجيل الدخول: ' + error.message);
-    console.error(error);
-  }
-}
-
-window.logout = async () => {
-  await signOut(auth);
-  location.reload();
-}
+const userId = "test-user";
 
 window.uploadFile = async () => {
   const file = document.getElementById('fileInput').files[0];
@@ -143,7 +109,7 @@ window.uploadFile = async () => {
     const res = await fetch('/api/upload', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ file: base64, userId: currentUser.uid, name: file.name })
+      body: JSON.stringify({ file: base64, userId: userId, name: file.name })
     });
 
     const data = await res.json();
@@ -166,7 +132,7 @@ window.askAI = async (type) => {
   const res = await fetch('/api/ask', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ question, docId, userId: currentUser.uid, type, mode: 'solve' })
+    body: JSON.stringify({ question, docId, userId: userId, type, mode: 'solve' })
   });
 
   const data = await res.json();
@@ -188,7 +154,7 @@ window.getExplanation = async () => {
     body: JSON.stringify({
       question: lastQuestion,
       docId,
-      userId: currentUser.uid,
+      userId: userId,
       type: 'exam',
       mode: 'explain',
       answer: lastAnswer
