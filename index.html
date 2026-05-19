@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clarity AI - ذاكر بذكاء</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+  *{box-sizing:border-box}
+  body{font-family:'Cairo',sans-serif;background:#0f172a;color:white;margin:0;padding:20px}
+.container{max-width:900px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:12px;font-size:32px;font-weight:700;margin-bottom:5px}
+.logo span b{color:#3b82f6}
+.tagline{color:#94a3b8;margin-bottom:25px;font-size:14px}
+.box{background:#1e293b;padding:20px;border-radius:12px;margin:15px 0;border:1px solid #334155}
+  input,textarea,button{width:100%;padding:12px;border-radius:8px;border:none;background:#334155;color:white;font-family:'Cairo',sans-serif;margin:8px 0;font-size:15px}
+  button{background:#3b82f6;cursor:pointer;font-weight:600;transition:0.2s}
+  button:hover{background:#2563eb;transform:translateY(-1px)}
+  button:disabled{opacity:0.5;cursor:not-allowed}
+.btn-red{background:#ef4444}
+.btn-red:hover{background:#dc2626}
+.btn-green{background:#22c55e}
+.btn-green:hover{background:#16a34a}
+.hidden{display:none}
+.answer{background:#0f172a;padding:15px;border-radius:8px;white-space:pre-wrap;line-height:1.8;border:1px solid #334155}
+.btn-group{display:flex;gap:10px}
+.btn-group button{width:auto;flex:1}
+.footer{margin-top:40px;text-align:center;color:#64748b;font-size:13px;padding-top:20px;border-top:1px solid #334155}
+.footer strong{color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 5C13.373 5 8 10.373 8 17C8 21.5 10.5 25.5 14 28V31C14 32.103 14.897 33 16 33H24C25.103 33 26 32.103 26 31V28C29.5 25.5 32 21.5 32 17C32 10.373 26.627 5 20 5Z" fill="#3b82f6"/>
+      <path d="M16 17H24M20 13V21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <path d="M14 31H26M17 31V35H23V31" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>Clarity <b>AI</b></span>
+  </div>
+  <div class="tagline">حول ملفاتك لذكاء. افهم، ذاكر، ونجح.</div>
+
+  <div id="loginBox" class="box">
+    <h3>سجل دخول عشان تبدأ</h3>
+    <button id="loginBtn">تسجيل بالجيميل</button>
+  </div>
+
+  <div id="appBox" class="hidden">
+    <p>أهلاً <span id="userName"></span> | <button onclick="logout()" style="width:auto;padding:6px 12px;font-size:13px;">خروج</button></p>
+
+    <div class="box">
+      <h3>1. ارفع ملف PDF أو TXT</h3>
+      <input type="file" id="fileInput" accept=".pdf,.txt">
+      <button onclick="uploadFile()">رفع وتحليل</button>
+      <p id="uploadStatus"></p>
+    </div>
+
+    <div class="box">
+      <h3>2. اسأل أو اعمل كويز أو حل امتحان</h3>
+      <textarea id="question" rows="4" placeholder="اكتب سؤالك أو: اعمل كويز 5 اسئلة أو الصق الامتحان كله"></textarea>
+
+      <div class="btn-group">
+        <button onclick="askAI('qa')">اسأل</button>
+        <button onclick="askAI('quiz')">اعمل كويز</button>
+        <button onclick="askAI('exam')" class="btn-red">حل الامتحان</button>
+      </div>
+
+      <div id="answerBox" class="answer hidden"></div>
+
+      <div id="explainBox" class="hidden">
+        <button onclick="getExplanation()" class="btn-green">عايز شرح للحل</button>
+        <div id="explanationBox" class="answer hidden"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Developed by <strong>ENG \ ZIAD KHAFAGH</strong>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_FIREBASE_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+let currentUser = null;
+let docId = null;
+let lastAnswer = '';
+let lastQuestion = '';
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('loginBox').classList.add('hidden');
+    document.getElementById('appBox').classList.remove('hidden');
+    document.getElementById('userName').textContent = user.displayName;
+  }
+});
+
+document.getElementById('loginBtn').onclick = async () => {
+  await signInWithPopup(auth, provider);
+}
+
+window.logout = async () => {
+  await signOut(auth);
+  location.reload();
+}
+
+window.uploadFile = async () => {
+  const file = document.getElementById('fileInput').files[0];
+  if (!file) return alert('اختار ملف');
+
+  document.getElementById('uploadStatus').textContent = 'بيحلل الملف...';
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ file: base64, userId: currentUser.uid, name: file.name })
+    });
+
+    const data = await res.json();
+    docId = data.docId;
+    document.getElementById('uploadStatus').textContent = `تم! ${data.chunks} جزء اتحفظ`;
+  };
+  reader.readAsDataURL(file);
+}
+
+window.askAI = async (type) => {
+  const question = document.getElementById('question').value;
+  if (!question ||!docId) return alert('ارفع ملف الأول');
+
+  lastQuestion = question;
+  document.getElementById('answerBox').classList.remove('hidden');
+  document.getElementById('explainBox').classList.add('hidden');
+  document.getElementById('explanationBox').classList.add('hidden');
+  document.getElementById('answerBox').textContent = 'بيحل...';
+
+  const res = await fetch('/api/ask', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ question, docId, userId: currentUser.uid, type, mode: 'solve' })
+  });
+
+  const data = await res.json();
+  lastAnswer = data.answer;
+  document.getElementById('answerBox').textContent = data.answer;
+
+  if (type!== 'quiz') {
+    document.getElementById('explainBox').classList.remove('hidden');
+  }
+}
+
+window.getExplanation = async () => {
+  document.getElementById('explanationBox').classList.remove('hidden');
+  document.getElementById('explanationBox').textContent = 'بيشرح...';
+
+  const res = await fetch('/api/ask', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      question: lastQuestion,
+      docId,
+      userId: currentUser.uid,
+      type: 'exam',
+      mode: 'explain',
+      answer: lastAnswer
+    })
+  });
+
+  const data = await res.json();
+  document.getElementById('explanationBox').textContent = data.answer;
+}
+</script>
+</body>
+</html>
