@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY!);
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,15 +18,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'action غير صحيحة' }, { status: 400 });
     }
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-      max_tokens: 1500,
-    });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+    
+    const responseText = result.response.text();
 
-    return NextResponse.json({ result: response.choices[0].message.content });
+    return NextResponse.json({ result: responseText });
   } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'حصل خطأ' }, { status: 500 });
   }
 }
