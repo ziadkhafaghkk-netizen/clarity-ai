@@ -86,9 +86,13 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
@@ -107,11 +111,19 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById('loginBox').classList.add('hidden');
     document.getElementById('appBox').classList.remove('hidden');
     document.getElementById('userName').textContent = user.displayName;
+  } else {
+    document.getElementById('loginBox').classList.remove('hidden');
+    document.getElementById('appBox').classList.add('hidden');
   }
 });
 
 document.getElementById('loginBtn').onclick = async () => {
-  await signInWithPopup(auth, provider);
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    alert('خطأ في تسجيل الدخول: ' + error.message);
+    console.error(error);
+  }
 }
 
 window.logout = async () => {
